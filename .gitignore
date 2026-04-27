@@ -1,0 +1,15 @@
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Node (if ever used for local server)
+node_modules/
+package-lock.json

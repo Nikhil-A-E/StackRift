@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StackRift – 3D Block Stacking Game</title>
+<meta name="description" content="StackRift is an addictive 3D block stacking game. Drop blocks, build your tower, and chase the perfect combo!">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#0a0a12;font-family:'Outfit',sans-serif;color:#fff;user-select:none;-webkit-user-select:none}
+canvas{display:block;position:fixed;top:0;left:0;z-index:1}
+
+/* HUD */
+#hud{position:fixed;top:0;left:0;width:100%;z-index:10;pointer-events:none;padding:24px 32px;display:flex;justify-content:space-between;align-items:flex-start;transition:opacity .4s}
+#hud.hidden{opacity:0;pointer-events:none}
+#score-box{text-align:left}
+#score-label{font-size:13px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.5)}
+#score{font-size:56px;font-weight:800;line-height:1;background:linear-gradient(135deg,#00f0ff,#b347ea);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+#combo-box{opacity:0;transition:opacity .3s;text-align:center}
+#combo-box.show{opacity:1}
+#combo-text{font-size:28px;font-weight:600;color:#ffe066;text-shadow:0 0 20px rgba(255,224,102,.6)}
+#combo-sub{font-size:12px;letter-spacing:2px;color:rgba(255,224,102,.5)}
+
+/* Overlays */
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s,visibility .5s}
+.overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
+
+#start-screen{background:radial-gradient(ellipse at 50% 60%,rgba(40,0,80,.7),rgba(10,10,18,.95))}
+#game-over-screen{background:rgba(10,10,18,.88);backdrop-filter:blur(12px)}
+
+.logo{font-size:72px;font-weight:800;letter-spacing:-2px;background:linear-gradient(135deg,#00f0ff,#b347ea,#ff6ec7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.3)}}
+.tagline{font-size:16px;color:rgba(255,255,255,.45);letter-spacing:4px;text-transform:uppercase;margin-bottom:48px}
+
+.btn{pointer-events:all;background:linear-gradient(135deg,#b347ea,#00f0ff);border:none;color:#fff;font-family:'Outfit',sans-serif;font-size:18px;font-weight:600;padding:16px 48px;border-radius:60px;cursor:pointer;letter-spacing:2px;text-transform:uppercase;transition:transform .2s,box-shadow .2s;box-shadow:0 0 30px rgba(179,71,234,.4)}
+.btn:hover{transform:scale(1.06);box-shadow:0 0 50px rgba(0,240,255,.5)}
+.btn:active{transform:scale(.97)}
+
+#final-score-label{font-size:14px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:4px}
+#final-score{font-size:80px;font-weight:800;background:linear-gradient(135deg,#00f0ff,#b347ea);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+#best-score{font-size:14px;color:rgba(255,255,255,.35);margin-bottom:16px}
+
+/* Name Input */
+#name-row{display:flex;align-items:center;gap:10px;margin-bottom:24px;pointer-events:all}
+#name-input{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:10px 16px;color:#fff;font-family:'Outfit',sans-serif;font-size:15px;width:180px;outline:none;transition:border-color .2s}
+#name-input:focus{border-color:#00f0ff}
+#name-input::placeholder{color:rgba(255,255,255,.25)}
+#save-btn{background:linear-gradient(135deg,#00f0ff,#b347ea);border:none;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;padding:10px 20px;border-radius:12px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:transform .15s,opacity .2s}
+#save-btn:hover{transform:scale(1.05)}
+#save-btn:disabled{opacity:.4;cursor:default;transform:none}
+
+/* Leaderboard */
+#leaderboard{width:320px;max-height:280px;overflow-y:auto;margin-bottom:24px;pointer-events:all}
+#leaderboard::-webkit-scrollbar{width:4px}
+#leaderboard::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
+#lb-title{font-size:13px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:12px;text-align:center}
+.lb-row{display:flex;align-items:center;padding:8px 14px;border-radius:10px;margin-bottom:4px;background:rgba(255,255,255,.04);transition:background .2s}
+.lb-row:hover{background:rgba(255,255,255,.08)}
+.lb-row.highlight{background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.2)}
+.lb-rank{width:28px;font-size:14px;font-weight:700;color:rgba(255,255,255,.35)}
+.lb-rank.gold{color:#ffe066}
+.lb-rank.silver{color:#c0c0c0}
+.lb-rank.bronze{color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:400;color:rgba(255,255,255,.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:15px;font-weight:700;background:linear-gradient(135deg,#00f0ff,#b347ea);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.lb-date{font-size:11px;color:rgba(255,255,255,.2);margin-left:8px;white-space:nowrap}
+
+/* Start screen leaderboard button */
+.btn-secondary{pointer-events:all;background:transparent;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);font-family:'Outfit',sans-serif;font-size:14px;font-weight:400;padding:10px 32px;border-radius:60px;cursor:pointer;letter-spacing:2px;text-transform:uppercase;transition:all .2s;margin-top:16px}
+.btn-secondary:hover{border-color:rgba(0,240,255,.4);color:rgba(255,255,255,.8)}
+
+/* Start leaderboard panel */
+#start-lb{display:none;margin-top:24px;width:320px}
+#start-lb.show{display:block}
+
+/* Floating hint */
+.hint{font-size:13px;color:rgba(255,255,255,.3);position:fixed;bottom:28px;width:100%;text-align:center;z-index:25;pointer-events:none;animation:fadeHint 2s ease-in-out infinite}
+@keyframes fadeHint{0%,100%{opacity:.3}50%{opacity:.7}}
+</style>
+</head>
+<body>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="score-box"><div id="score-label">Score</div><div id="score">0</div></div>
+  <div id="combo-box"><div id="combo-text"></div><div id="combo-sub">COMBO</div></div>
+</div>
+
+<!-- Start Screen -->
+<div id="start-screen" class="overlay">
+  <div class="logo">StackRift</div>
+  <div class="tagline">Stack · Slice · Survive</div>
+  <button class="btn" id="start-btn">Play</button>
+  <button class="btn-secondary" id="lb-toggle-btn">Leaderboard</button>
+  <div id="start-lb"></div>
+  <div class="hint">Click or press Space to drop</div>
+</div>
+
+<!-- Game Over Screen -->
+<div id="game-over-screen" class="overlay hidden">
+  <div id="final-score-label">Your Score</div>
+  <div id="final-score">0</div>
+  <div id="best-score">Best: 0</div>
+  <div id="name-row">
+    <input type="text" id="name-input" placeholder="Your name" maxlength="16" autocomplete="off">
+    <button id="save-btn">Save</button>
+  </div>
+  <div id="leaderboard"></div>
+  <button class="btn" id="restart-btn">Play Again</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================================================
+   StackRift – Complete Game Logic
+   ============================================================ */
+(function(){
+"use strict";
+
+/* ---------- CONSTANTS ---------- */
+const BLOCK_HEIGHT = .35;
+const BASE_SIZE = 3.2;
+const BASE_SPEED = .045;
+const SPEED_INCREMENT = .0012;
+const SWING_DISTANCE = 6;
+const PERFECT_THRESHOLD = .12;
+const CAMERA_LERP = .06;
+const SHAKE_DECAY = .92;
+const PARTICLE_COUNT = 14;
+const COLORS = [
+  [0,240,255],[100,80,255],[179,71,234],[255,110,199],
+  [255,180,80],[0,255,180],[255,90,90],[80,200,255]
+];
+
+/* ---------- AUDIO ENGINE (Web Audio API) ---------- */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let actx;
+function ensureAudio(){ if(!actx) actx = new AudioCtx(); }
+
+function playTone(freq, dur, vol, type){
+  ensureAudio();
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type=type||'sine'; o.frequency.value=freq;
+  g.gain.setValueAtTime(vol,actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(); o.stop(actx.currentTime+dur);
+}
+function sndDrop(combo){
+  const base=280+combo*40;
+  playTone(base,.18,.18,'triangle');
+  playTone(base*1.5,.12,.1,'sine');
+}
+function sndPerfect(combo){
+  const b=400+combo*60;
+  playTone(b,.15,.15,'sine');
+  setTimeout(()=>playTone(b*1.25,.15,.12,'sine'),80);
+  setTimeout(()=>playTone(b*1.5,.2,.1,'sine'),160);
+}
+function sndCut(){playTone(120,.25,.12,'sawtooth');playTone(80,.3,.08,'square');}
+function sndGameOver(){
+  playTone(220,.3,.15,'sawtooth');
+  setTimeout(()=>playTone(160,.4,.12,'sawtooth'),150);
+  setTimeout(()=>playTone(100,.6,.1,'sawtooth'),350);
+}
+
+/* ---------- DOM REFS ---------- */
+const $hud=document.getElementById('hud');
+const $score=document.getElementById('score');
+const $comboBox=document.getElementById('combo-box');
+const $comboText=document.getElementById('combo-text');
+const $startScreen=document.getElementById('start-screen');
+const $gameOverScreen=document.getElementById('game-over-screen');
+const $finalScore=document.getElementById('final-score');
+const $bestScore=document.getElementById('best-score');
+
+/* ---------- THREE.JS SCENE ---------- */
+const renderer = new THREE.WebGLRenderer({antialias:true,alpha:false});
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.1;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a12);
+scene.fog = new THREE.FogExp2(0x0a0a12,.022);
+
+const camera = new THREE.PerspectiveCamera(55,window.innerWidth/window.innerHeight,.1,200);
+camera.position.set(5,6,5);
+camera.lookAt(0,0,0);
+
+// Lights
+const amb=new THREE.AmbientLight(0x221133,.6);scene.add(amb);
+const dir=new THREE.DirectionalLight(0xffffff,.7);
+dir.position.set(5,12,8);dir.castShadow=true;
+dir.shadow.mapSize.set(1024,1024);
+dir.shadow.camera.near=1;dir.shadow.camera.far=40;
+dir.shadow.camera.left=-10;dir.shadow.camera.right=10;
+dir.shadow.camera.top=10;dir.shadow.camera.bottom=-10;
+scene.add(dir);
+
+const rimLight=new THREE.DirectionalLight(0xb347ea,.35);
+rimLight.position.set(-5,8,-5);scene.add(rimLight);
+
+// Base platform
+function makeBlockMat(r,g,b){
+  return new THREE.MeshStandardMaterial({
+    color:new THREE.Color(`rgb(${r},${g},${b})`),
+    metalness:.15,roughness:.55,
+    emissive:new THREE.Color(`rgb(${r},${g},${b})`),emissiveIntensity:.12
+  });
+}
+
+const baseMat=new THREE.MeshStandardMaterial({color:0x18182a,metalness:.3,roughness:.6});
+const baseGeo=new THREE.BoxGeometry(BASE_SIZE,BLOCK_HEIGHT,BASE_SIZE);
+const baseMesh=new THREE.Mesh(baseGeo,baseMat);
+baseMesh.position.y=-BLOCK_HEIGHT/2;
+baseMesh.receiveShadow=true;
+scene.add(baseMesh);
+
+/* ---------- GAME STATE ---------- */
+let state='start'; // start | playing | gameover
+let stack=[];       // {mesh, width, depth, x, z}
+let movingBlock=null;
+let direction=1;    // 1=x, -1=z
+let speed=BASE_SPEED;
+let scoreVal=0;
+let combo=0;
+let bestScoreVal=parseInt(localStorage.getItem('stackrift_best'))||0;
+let lastSavedIndex=-1; // track if current game score was saved
+let shakeIntensity=0;
+let targetCamY=6;
+let particles=[];
+let fallingPieces=[];
+let animFrame=0;
+
+function getColor(idx){
+  const c1=COLORS[idx%COLORS.length];
+  const c2=COLORS[(idx+1)%COLORS.length];
+  const t=(idx%8)/8;
+  return [
+    Math.round(c1[0]+(c2[0]-c1[0])*t),
+    Math.round(c1[1]+(c2[1]-c1[1])*t),
+    Math.round(c1[2]+(c2[2]-c1[2])*t)
+  ];
+}
+
+/* ---------- STACK MANAGEMENT ---------- */
+function topBlock(){return stack[stack.length-1];}
+
+function addToStack(mesh,w,d,x,z){
+  stack.push({mesh,width:w,depth:d,x,z});
+}
+
+function spawnMovingBlock(){
+  const top=topBlock();
+  const w=top.width, d=top.depth;
+  const col=getColor(stack.length);
+  const mat=makeBlockMat(col[0],col[1],col[2]);
+  const geo=new THREE.BoxGeometry(w,BLOCK_HEIGHT,d);
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.castShadow=true;
+  mesh.receiveShadow=true;
+
+  const y=stack.length*BLOCK_HEIGHT;
+  direction*=-1;
+  if(direction===1){
+    mesh.position.set(-SWING_DISTANCE,y,top.z);
+  } else {
+    mesh.position.set(top.x,y,-SWING_DISTANCE);
+  }
+  scene.add(mesh);
+  movingBlock={mesh,width:w,depth:d,dir:direction,y};
+}
+
+/* ---------- PARTICLE SYSTEM ---------- */
+function spawnParticles(x,y,z,col,count){
+  const c=new THREE.Color(`rgb(${col[0]},${col[1]},${col[2]})`);
+  for(let i=0;i<count;i++){
+    const size=.04+Math.random()*.08;
+    const g=new THREE.BoxGeometry(size,size,size);
+    const m=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:1});
+    const p=new THREE.Mesh(g,m);
+    p.position.set(x+(Math.random()-.5)*1.5,y,z+(Math.random()-.5)*1.5);
+    scene.add(p);
+    particles.push({
+      mesh:p,
+      vx:(Math.random()-.5)*.12,
+      vy:.06+Math.random()*.1,
+      vz:(Math.random()-.5)*.12,
+      life:1
+    });
+  }
+}
+
+function spawnFallingPiece(x,z,w,d,y,col){
+  const mat=makeBlockMat(col[0],col[1],col[2]);
+  mat.transparent=true;
+  const geo=new THREE.BoxGeometry(w,BLOCK_HEIGHT,d);
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.position.set(x,y,z);
+  mesh.castShadow=true;
+  scene.add(mesh);
+  fallingPieces.push({mesh,vy:0,rotSpeed:(Math.random()-.5)*.08,life:1});
+}
+
+/* ---------- GAME LOGIC ---------- */
+function startGame(){
+  // Clear old
+  stack.forEach(s=>scene.remove(s.mesh));
+  particles.forEach(p=>scene.remove(p.mesh));
+  fallingPieces.forEach(f=>scene.remove(f.mesh));
+  if(movingBlock)scene.remove(movingBlock.mesh);
+  stack=[];particles=[];fallingPieces=[];movingBlock=null;
+
+  scoreVal=0;combo=0;speed=BASE_SPEED;direction=1;
+  lastSavedIndex=-1;
+  $score.textContent='0';
+  $comboBox.classList.remove('show');
+
+  // Reset base
+  baseMesh.position.y=-BLOCK_HEIGHT/2;
+  addToStack(baseMesh,BASE_SIZE,BASE_SIZE,0,0);
+
+  targetCamY=6;
+  state='playing';
+  $startScreen.classList.add('hidden');
+  $gameOverScreen.classList.add('hidden');
+  $hud.classList.remove('hidden');
+
+  spawnMovingBlock();
+}
+
+function dropBlock(){
+  if(state!=='playing'||!movingBlock)return;
+  const mb=movingBlock;
+  const top=topBlock();
+  let overlapX,overlapZ,newX,newZ,cutW,cutD;
+
+  if(mb.dir===1){
+    // Moving along X
+    const delta=mb.mesh.position.x-top.x;
+    overlapX=mb.width-Math.abs(delta);
+    if(overlapX<=0){gameOver();return;}
+    overlapZ=mb.depth;
+    newX=top.x+delta/2;
+    newZ=top.z;
+    cutW=overlapX;cutD=mb.depth;
+
+    // Cut piece
+    if(Math.abs(delta)>PERFECT_THRESHOLD){
+      const cutOff=mb.width-overlapX;
+      const cutX=delta>0? mb.mesh.position.x+overlapX/2 : mb.mesh.position.x-overlapX/2;
+      const col=getColor(stack.length);
+      spawnFallingPiece(cutX,newZ,cutOff,mb.depth,mb.y,col);
+      spawnParticles(cutX,mb.y,newZ,col,PARTICLE_COUNT);
+      sndCut();
+      combo=0;
+      $comboBox.classList.remove('show');
+    } else {
+      // Perfect!
+      combo++;
+      newX=top.x;cutW=top.width;
+      sndPerfect(combo);
+      showCombo(combo);
+    }
+  } else {
+    // Moving along Z
+    const delta=mb.mesh.position.z-top.z;
+    overlapZ=mb.depth-Math.abs(delta);
+    if(overlapZ<=0){gameOver();return;}
+    overlapX=mb.width;
+    newX=top.x;
+    newZ=top.z+delta/2;
+    cutW=mb.width;cutD=overlapZ;
+
+    if(Math.abs(delta)>PERFECT_THRESHOLD){
+      const cutOff=mb.depth-overlapZ;
+      const cutZ=delta>0? mb.mesh.position.z+overlapZ/2 : mb.mesh.position.z-overlapZ/2;
+      const col=getColor(stack.length);
+      spawnFallingPiece(newX,cutZ,mb.width,cutOff,mb.y,col);
+      spawnParticles(newX,mb.y,cutZ,col,PARTICLE_COUNT);
+      sndCut();
+      combo=0;
+      $comboBox.classList.remove('show');
+    } else {
+      combo++;
+      newZ=top.z;cutD=top.depth;
+      sndPerfect(combo);
+      showCombo(combo);
+    }
+  }
+
+  if(combo===0) sndDrop(0);
+
+  // Replace moving block with properly sized one
+  scene.remove(mb.mesh);
+  const col=getColor(stack.length);
+  const mat=makeBlockMat(col[0],col[1],col[2]);
+  const geo=new THREE.BoxGeometry(cutW,BLOCK_HEIGHT,cutD);
+  const placed=new THREE.Mesh(geo,mat);
+  placed.castShadow=true;placed.receiveShadow=true;
+  placed.position.set(newX,mb.y,newZ);
+  scene.add(placed);
+  addToStack(placed,cutW,cutD,newX,newZ);
+
+  // Bounce animation
+  placed.scale.y=1.3;
+  shakeIntensity=.06;
+
+  // Score
+  scoreVal++;
+  const bonus=combo>1?combo-1:0;
+  scoreVal+=bonus;
+  $score.textContent=scoreVal;
+
+  // Difficulty
+  speed=BASE_SPEED+SPEED_INCREMENT*stack.length;
+
+  // Camera target
+  targetCamY=6+stack.length*BLOCK_HEIGHT;
+
+  movingBlock=null;
+  setTimeout(()=>{if(state==='playing')spawnMovingBlock();},200);
+}
+
+function showCombo(c){
+  if(c<2)return;
+  $comboText.textContent=c>=5?'INSANE x'+c:c>=3?'PERFECT x'+c:'NICE x'+c;
+  $comboBox.classList.add('show');
+}
+
+function gameOver(){
+  state='gameover';
+  sndGameOver();
+  if(movingBlock){
+    // Falling away
+    fallingPieces.push({mesh:movingBlock.mesh,vy:0,rotSpeed:(Math.random()-.5)*.08,life:1});
+    movingBlock=null;
+  }
+  if(scoreVal>bestScoreVal){bestScoreVal=scoreVal;localStorage.setItem('stackrift_best',bestScoreVal);}
+  setTimeout(()=>{
+    $hud.classList.add('hidden');
+    $finalScore.textContent=scoreVal;
+    $bestScore.textContent='Best: '+bestScoreVal;
+    // Reset save state
+    lastSavedIndex=-1;
+    const $saveBtn=document.getElementById('save-btn');
+    $saveBtn.disabled=false;$saveBtn.textContent='Save';
+    document.getElementById('name-input').value=localStorage.getItem('stackrift_name')||'';
+    renderLeaderboard(document.getElementById('leaderboard'),-1);
+    $gameOverScreen.classList.remove('hidden');
+  },600);
+}
+
+/* ---------- LEADERBOARD ---------- */
+function getScores(){
+  try{return JSON.parse(localStorage.getItem('stackrift_scores'))||[];}catch(e){return[];}
+}
+function saveScoreEntry(name,score){
+  const scores=getScores();
+  const entry={name:name.trim()||'Player',score,date:new Date().toLocaleDateString()};
+  scores.push(entry);
+  scores.sort((a,b)=>b.score-a.score);
+  if(scores.length>20)scores.length=20; // keep top 20
+  localStorage.setItem('stackrift_scores',JSON.stringify(scores));
+  localStorage.setItem('stackrift_name',entry.name);
+  // Find index of this entry
+  return scores.findIndex(s=>s===entry);
+}
+function renderLeaderboard(container,highlightIdx){
+  const scores=getScores();
+  if(scores.length===0){
+    container.innerHTML='<div id="lb-title">Leaderboard</div><div style="text-align:center;color:rgba(255,255,255,.25);font-size:13px;padding:16px 0">No scores yet. Be the first!</div>';
+    return;
+  }
+  const top10=scores.slice(0,10);
+  let html='<div id="lb-title">Leaderboard</div>';
+  top10.forEach((s,i)=>{
+    const rankClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const hl=i===highlightIdx?'highlight':'';
+    html+=`<div class="lb-row ${hl}"><span class="lb-rank ${rankClass}">${i+1}</span><span class="lb-name">${escHtml(s.name)}</span><span class="lb-score">${s.score}</span><span class="lb-date">${s.date||''}</span></div>`;
+  });
+  container.innerHTML=html;
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ---------- GAME LOOP ---------- */
+function update(){
+  animFrame=requestAnimationFrame(update);
+
+  // Moving block
+  if(movingBlock&&state==='playing'){
+    const mb=movingBlock;
+    if(mb.dir===1){
+      mb.mesh.position.x+=speed;
+      if(mb.mesh.position.x>SWING_DISTANCE)speed=-Math.abs(speed);
+      if(mb.mesh.position.x<-SWING_DISTANCE)speed=Math.abs(speed);
+    } else {
+      mb.mesh.position.z+=speed;
+      if(mb.mesh.position.z>SWING_DISTANCE)speed=-Math.abs(speed);
+      if(mb.mesh.position.z<-SWING_DISTANCE)speed=Math.abs(speed);
+    }
+  }
+
+  // Block scale bounce settle
+  stack.forEach(s=>{
+    if(s.mesh.scale.y>1.001){
+      s.mesh.scale.y+=(1-s.mesh.scale.y)*.12;
+    }
+  });
+
+  // Particles
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.mesh.position.x+=p.vx;
+    p.mesh.position.y+=p.vy;
+    p.mesh.position.z+=p.vz;
+    p.vy-=.004;
+    p.life-=.025;
+    p.mesh.material.opacity=Math.max(0,p.life);
+    if(p.life<=0){scene.remove(p.mesh);particles.splice(i,1);}
+  }
+
+  // Falling pieces
+  for(let i=fallingPieces.length-1;i>=0;i--){
+    const f=fallingPieces[i];
+    f.vy-=.006;
+    f.mesh.position.y+=f.vy;
+    f.mesh.rotation.x+=f.rotSpeed;
+    f.mesh.rotation.z+=f.rotSpeed*.7;
+    f.life-=.012;
+    if(f.mesh.material.opacity!==undefined)f.mesh.material.opacity=Math.max(0,f.life);
+    if(f.life<=0){scene.remove(f.mesh);fallingPieces.splice(i,1);}
+  }
+
+  // Camera
+  const camTargetY=targetCamY;
+  camera.position.y+=(camTargetY-camera.position.y)*CAMERA_LERP;
+  const lookY=camTargetY-6+(stack.length*BLOCK_HEIGHT)*.5;
+  camera.lookAt(0,lookY,0);
+
+  // Shake
+  if(shakeIntensity>.001){
+    camera.position.x=5+(Math.random()-.5)*shakeIntensity*4;
+    camera.position.z=5+(Math.random()-.5)*shakeIntensity*4;
+    shakeIntensity*=SHAKE_DECAY;
+  } else {
+    camera.position.x=5;camera.position.z=5;
+  }
+
+  renderer.render(scene,camera);
+}
+
+/* ---------- INPUT ---------- */
+function onAction(e){
+  if(e)e.preventDefault();
+  ensureAudio();
+  if(state==='playing') dropBlock();
+}
+document.getElementById('start-btn').addEventListener('click',()=>{ensureAudio();startGame();});
+document.getElementById('restart-btn').addEventListener('click',()=>{ensureAudio();startGame();});
+
+// Save score
+document.getElementById('save-btn').addEventListener('click',()=>{
+  if(lastSavedIndex!==-1)return;
+  const nameVal=document.getElementById('name-input').value.trim()||'Player';
+  const idx=saveScoreEntry(nameVal,scoreVal);
+  lastSavedIndex=idx;
+  const $saveBtn=document.getElementById('save-btn');
+  $saveBtn.disabled=true;$saveBtn.textContent='Saved!';
+  renderLeaderboard(document.getElementById('leaderboard'),idx);
+});
+// Enter key to save
+document.getElementById('name-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();e.stopPropagation();document.getElementById('save-btn').click();}
+});
+// Start screen leaderboard toggle
+document.getElementById('lb-toggle-btn').addEventListener('click',()=>{
+  const panel=document.getElementById('start-lb');
+  if(panel.classList.contains('show')){panel.classList.remove('show');}
+  else{renderLeaderboard(panel,-1);panel.classList.add('show');}
+});
+window.addEventListener('keydown',e=>{
+  if(e.code==='Space'){
+    e.preventDefault();
+    if(state==='start')startGame();
+    else if(state==='gameover')startGame();
+    else onAction();
+  }
+});
+renderer.domElement.addEventListener('click',e=>{
+  if(state==='playing')onAction(e);
+});
+renderer.domElement.addEventListener('touchstart',e=>{
+  if(state==='playing')onAction(e);
+},{passive:false});
+
+/* ---------- RESIZE ---------- */
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+/* ---------- INIT ---------- */
+$bestScore.textContent='Best: '+bestScoreVal;
+renderLeaderboard(document.getElementById('start-lb'),-1);
+update();
+
+})();
+</script>
+</body>
+</html>
