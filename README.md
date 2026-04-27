@@ -63,25 +63,6 @@
 
 ---
 
-## 🚀 Quick Start
-
-### Option 1: Open directly
-Just double-click `index.html` in your browser — that's it!
-
-### Option 2: Local server
-```bash
-npx -y http-server . -p 8080
-```
-Then visit [http://localhost:8080](http://localhost:8080)
-
-### Option 3: Deploy to Netlify
-1. Fork this repo
-2. Connect to [Netlify](https://netlify.com)
-3. Set publish directory to `/`
-4. Deploy — done! ✅
-
----
-
 ## 🛠️ Tech Stack
 
 | Technology | Purpose |
