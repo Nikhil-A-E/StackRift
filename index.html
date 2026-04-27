@@ -422,7 +422,7 @@ function dropBlock(){
   speed=BASE_SPEED+SPEED_INCREMENT*stack.length;
 
   // Camera target
-  targetCamY=6+stack.length*BLOCK_HEIGHT;
+
 
   movingBlock=null;
   setTimeout(()=>{if(state==='playing')spawnMovingBlock();},200);
@@ -538,11 +538,11 @@ function update(){
     if(f.life<=0){scene.remove(f.mesh);fallingPieces.splice(i,1);}
   }
 
-  // Camera
-  const camTargetY=targetCamY;
-  camera.position.y+=(camTargetY-camera.position.y)*CAMERA_LERP;
-  const lookY=camTargetY-6+(stack.length*BLOCK_HEIGHT)*.5;
-  camera.lookAt(0,lookY,0);
+  // Camera — always stay at fixed offset above stack top
+  const stackTopY = stack.length * BLOCK_HEIGHT;
+  targetCamY = stackTopY + 5;
+  camera.position.y += (targetCamY - camera.position.y) * CAMERA_LERP;
+  const lookY = camera.position.y - 5;
 
   // Shake
   if(shakeIntensity>.001){
@@ -552,6 +552,8 @@ function update(){
   } else {
     camera.position.x=5;camera.position.z=5;
   }
+
+  camera.lookAt(0,lookY,0);
 
   renderer.render(scene,camera);
 }
