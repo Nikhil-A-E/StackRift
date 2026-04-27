@@ -2,10 +2,12 @@
 
 > **Stack · Slice · Survive** — A hyper-casual 3D block stacking game built entirely in the browser.
 
-![StackRift Banner](https://img.shields.io/badge/StackRift-Play%20Now-blueviolet?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTMgMjFoMThWM0gzdjE4eiIgZmlsbD0iIzAwZjBmZiIvPjwvc3ZnPg==)
-![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
+[![Play Now](https://img.shields.io/badge/🎮_StackRift-Play%20Now-blueviolet?style=for-the-badge)](https://stackrift.netlify.app)
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 ![Three.js](https://img.shields.io/badge/Three.js-r128-black?style=flat-square&logo=three.js)
 ![No Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen?style=flat-square)
+
+### 🌐 [▶ Play StackRift Live](https://stackrift.netlify.app)
 
 ---
 
