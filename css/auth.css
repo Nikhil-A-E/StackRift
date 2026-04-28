@@ -1,0 +1,173 @@
+/* auth.css */
+/* Auth Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(10, 10, 18, 0.85);
+  backdrop-filter: blur(10px);
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.modal-overlay.show {
+  opacity: 1; visibility: visible;
+  pointer-events: all;
+}
+
+.auth-box {
+  background: rgba(20, 20, 30, 0.95);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 16px;
+  width: 90%; max-width: 400px;
+  padding: 32px;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(179, 71, 234, 0.15);
+  position: relative;
+  transform: translateY(20px);
+  transition: transform 0.3s;
+}
+
+.modal-overlay.show .auth-box {
+  transform: translateY(0);
+}
+
+.auth-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: none; border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 24px; cursor: pointer;
+  transition: color 0.2s;
+}
+
+.auth-close:hover { color: #fff; }
+
+.auth-tabs {
+  display: flex;
+  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.auth-tab {
+  flex: 1;
+  background: none; border: none;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 12px 0;
+  font-size: 16px; font-weight: 600;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.auth-tab.active {
+  color: #00f0ff;
+  border-bottom-color: #00f0ff;
+}
+
+.auth-form { display: none; flex-direction: column; gap: 16px; }
+.auth-form.active { display: flex; }
+
+.input-group {
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.input-group label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+
+.auth-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  color: #fff; font-family: 'Outfit', sans-serif;
+  outline: none; transition: border-color 0.2s;
+}
+
+.auth-input:focus { border-color: #b347ea; }
+
+.auth-submit {
+  margin-top: 8px;
+  background: linear-gradient(135deg, #00f0ff, #b347ea);
+  border: none; border-radius: 8px;
+  color: #fff; font-family: 'Outfit', sans-serif;
+  font-weight: 700; font-size: 16px;
+  padding: 14px; cursor: pointer;
+  transition: transform 0.15s, opacity 0.2s;
+}
+
+.auth-submit:hover { transform: scale(1.02); }
+.auth-submit:disabled { opacity: 0.5; cursor: wait; transform: none; }
+
+.auth-error {
+  color: #ff5a5a; font-size: 13px;
+  text-align: center; min-height: 20px;
+}
+
+/* User Badge (Top Right) */
+.user-badge {
+  position: fixed;
+  bottom: 24px; right: 32px;
+  z-index: 15;
+  display: flex; align-items: center; gap: 12px;
+  pointer-events: all;
+}
+
+.user-info {
+  text-align: right;
+}
+
+.user-name {
+  font-weight: 600; font-size: 15px; color: #fff;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+.user-status {
+  font-size: 11px; color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+
+.auth-btn-small {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff; font-family: 'Outfit', sans-serif;
+  font-size: 12px; padding: 6px 12px;
+  border-radius: 20px; cursor: pointer;
+  transition: background 0.2s;
+}
+
+.auth-btn-small:hover { background: rgba(255, 255, 255, 0.2); }
+
+/* Leaderboard Tabs */
+.lb-tabs {
+  display: flex; gap: 8px; margin-bottom: 12px;
+  justify-content: center;
+}
+
+.lb-tab {
+  background: transparent; border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: 'Outfit', sans-serif; font-size: 12px;
+  text-transform: uppercase; letter-spacing: 1px;
+  cursor: pointer; padding: 4px 8px;
+  border-bottom: 2px solid transparent;
+}
+
+.lb-tab.active {
+  color: #fff; border-bottom-color: #b347ea;
+}
+
+.lb-content { display: none; }
+.lb-content.active { display: block; }
+.lb-empty { text-align: center; color: rgba(255, 255, 255, 0.3); font-size: 13px; padding: 16px; }
+
+/* Global Rank */
+#global-rank {
+  font-size: 14px; color: #00f0ff; margin-bottom: 16px; font-weight: 600;
+}

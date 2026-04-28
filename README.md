@@ -1,11 +1,11 @@
 # 🎮 StackRift
 
-> **Stack · Slice · Survive** — A hyper-casual 3D block stacking game built entirely in the browser.
+> **Stack · Slice · Survive** — A hyper-casual 3D block stacking game with global competitive rankings.
 
 [![Play Now](https://img.shields.io/badge/🎮_StackRift-Play%20Now-blueviolet?style=for-the-badge)](https://stackrift.netlify.app)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 ![Three.js](https://img.shields.io/badge/Three.js-r128-black?style=flat-square&logo=three.js)
-![No Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen?style=flat-square)
+![Firebase](https://img.shields.io/badge/Backend-Firebase-orange?style=flat-square&logo=firebase)
 
 ### 🌐 [▶ Play StackRift Live](https://stackrift.netlify.app)
 
@@ -13,65 +13,30 @@
 
 ## 🕹️ How to Play
 
-1. Blocks move horizontally across the platform
-2. **Click**, **tap**, or press **Spacebar** to drop the block
-3. Land it on the stack — the overhanging part gets sliced off
-4. Keep stacking! Miss the platform entirely and it's **game over**
-5. Chase perfect placements to build combos and bonus points
+1. Blocks move horizontally across the platform.
+2. **Click**, **tap**, or press **Spacebar** to drop the block.
+3. Land it on the stack — the overhanging part gets sliced off.
+4. Keep stacking! Miss the platform entirely and it's **game over**.
+5. **Compete Globally:** Sign up to save your scores to the global cloud leaderboard!
 
 ---
 
-## ✨ Features
+## ✨ New Features
 
-### Core Gameplay
-- 🧱 Precise block stacking with real-time overlap detection
-- ✂️ Dynamic block slicing — overhanging parts fall away with physics
-- 📈 Progressive difficulty — speed increases with each successful stack
-- 🔄 Alternating movement axes (X and Z) for added challenge
+### 🏆 Global Leaderboard
+- Real-time global rankings powered by Firebase.
+- Compete with players worldwide.
+- High-score persistence even for guests (stored locally until cloud sync).
 
-### Visual Effects
-- 🌈 Neon glow aesthetic with color-shifting blocks
-- 💥 Particle burst effects on block cuts
-- 📸 Screen shake on block landing
-- 🎬 Smooth bounce animations for placed blocks
-- 🌑 Dark cinematic background with ACES filmic tone mapping
+### ☁️ Cloud Sync & Auth
+- **User Accounts:** Create an account to secure your rank and username.
+- **Cross-Device:** Access your scores from any device once logged in.
+- **Guest Support:** Save scores as a guest with a custom display name.
 
-### Audio
-- 🔊 Synthesized sound effects (Web Audio API — no external files)
-- 🎵 Unique sounds for drops, cuts, perfect placements, and game over
-- 🎶 Ascending arpeggio chimes for combo streaks
-
-### Combo System
-- ⭐ **NICE** — 2x perfect placements
-- 🌟 **PERFECT** — 3-4x streak
-- 💫 **INSANE** — 5x+ streak
-- 🏆 Bonus points for every combo hit
-
-### Leaderboard & Scores
-- 📊 Local leaderboard with top 10 scores
-- 🏅 Gold, silver, bronze rank indicators
-- 💾 Name entry — remembers your last used name
-- 📅 Score history with dates
-- 🔒 All data stored locally in `localStorage` — no server required
-
-### Controls
-| Input | Action |
-|-------|--------|
-| 🖱️ Mouse Click | Drop block |
-| ⌨️ Spacebar | Drop block |
-| 📱 Touch | Drop block (mobile) |
-
----
-
-## 🛠️ Tech Stack
-
-| Technology | Purpose |
-|-----------|---------|
-| **Three.js r128** | 3D rendering engine |
-| **Web Audio API** | Synthesized sound effects |
-| **localStorage** | Score persistence & leaderboard |
-| **Vanilla JS** | Game logic — zero dependencies |
-| **CSS3** | UI overlays, animations, glassmorphism |
+### 🛠️ Enhanced Tech Stack
+- **Serverless Backend:** Netlify Functions (Node.js) handling secure score submission.
+- **Database:** Firebase Firestore for high-performance global rankings.
+- **Authentication:** Firebase Auth for secure user management.
 
 ---
 
@@ -79,49 +44,53 @@
 
 ```
 StackRift/
-├── index.html      # Complete game (HTML + CSS + JS)
-├── README.md       # This file
-└── LICENSE         # MIT License
+├── index.html          # Main Game UI & Logic
+├── css/
+│   └── auth.css        # Authentication UI Styling
+├── js/
+│   ├── auth.js         # Firebase Auth & Profile Logic
+│   ├── firebase-config.js # Client-side Firebase Init
+│   ├── leaderboard.js  # Leaderboard Rendering Logic
+│   └── score-submit.js # Score API Wrapper
+├── netlify/
+│   └── functions/      # Secure Serverless Backend
+│       ├── get-leaderboard.js
+│       ├── signup.js
+│       └── submit-score.js
+├── netlify.toml        # Netlify Configuration
+└── README.md
 ```
 
-> The entire game is contained in a single `index.html` file — no build step, no bundler, no framework.
-
 ---
 
-## 🎨 Design Philosophy
+## 🚀 Deployment Guide
 
-- **Minimalistic 3D** — Clean geometry with neon accent lighting
-- **Dark mode first** — Easy on the eyes, dramatic visuals
-- **Hyper-casual feel** — One-tap controls, instant restarts, addictive feedback loop
-- **Zero friction** — No install, no signup, no loading — just play
+To deploy your own version of StackRift with the global leaderboard:
 
----
+### 1. Firebase Setup
+1. Create a project at [Firebase Console](https://console.firebase.google.com/).
+2. Enable **Firestore Database** and **Authentication** (Email/Password).
+3. Create a Service Account (Project Settings > Service Accounts) and download the JSON key.
+4. Get your Client SDK config (Project Settings > General > Web Apps).
 
-## 📱 Browser Support
+### 2. Environment Variables
+Add these to your Netlify Site Settings (Build & Deploy > Environment):
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY` (The full private key from the JSON)
+- `FIREBASE_API_KEY` (For client-side config)
 
-| Browser | Support |
-|---------|---------|
-| Chrome | ✅ Full |
-| Firefox | ✅ Full |
-| Safari | ✅ Full |
-| Edge | ✅ Full |
-| Mobile Chrome | ✅ Touch |
-| Mobile Safari | ✅ Touch |
+### 3. Deploy to Netlify
+**Option A: Netlify CLI (Recommended)**
+```bash
+npm install -g netlify-cli
+netlify login
+netlify init
+netlify deploy --prod
+```
 
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to:
-- 🐛 Report bugs
-- 💡 Suggest features
-- 🔀 Submit pull requests
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+**Option B: GitHub Integration**
+Simply push your code to a GitHub repository and connect it to Netlify. It will automatically detect the `netlify/functions` and the `index.html`.
 
 ---
 
@@ -134,5 +103,5 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 <p align="center">
   <b>⬆️ Stack higher. Slice cleaner. Survive longer.</b><br>
-  <i>Built with ❤️ and Three.js</i>
+  <i>Built with ❤️, Three.js, and Netlify</i>
 </p>

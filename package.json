@@ -1,0 +1,14 @@
+{
+  "name": "stackrift",
+  "version": "2.0.0",
+  "description": "StackRift 3D Game with Global Leaderboard",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.42.0"
+  }
+}

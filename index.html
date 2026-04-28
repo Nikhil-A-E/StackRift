@@ -7,6 +7,7 @@
   <title>StackRift – 3D Block Stacking Game</title>
   <meta name="description"
     content="StackRift is an addictive 3D block stacking game. Drop blocks, build your tower, and chase the perfect combo!">
+  <link rel="stylesheet" href="css/auth.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
 
@@ -414,6 +415,58 @@
 
 <body>
 
+  <!-- User Badge -->
+  <div class="user-badge" id="user-badge">
+    <div class="user-info">
+      <div class="user-name" id="user-name-display">Guest</div>
+      <div class="user-status" id="user-status-display">Not saved to cloud</div>
+    </div>
+    <button class="auth-btn-small" id="auth-toggle-btn">Log In</button>
+  </div>
+
+  <!-- Auth Modal -->
+  <div class="modal-overlay" id="auth-modal">
+    <div class="auth-box">
+      <button class="auth-close" id="auth-close">&times;</button>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Log In</button>
+        <button class="auth-tab" data-tab="signup">Sign Up</button>
+      </div>
+      
+      <div class="auth-error" id="auth-error"></div>
+
+      <!-- Login Form -->
+      <div class="auth-form active" id="form-login">
+        <div class="input-group">
+          <label>Email</label>
+          <input type="email" id="login-email" class="auth-input" placeholder="you@example.com">
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" id="login-password" class="auth-input" placeholder="••••••••">
+        </div>
+        <button class="auth-submit" id="btn-login">Log In</button>
+      </div>
+
+      <!-- Signup Form -->
+      <div class="auth-form" id="form-signup">
+        <div class="input-group">
+          <label>Username</label>
+          <input type="text" id="signup-username" class="auth-input" placeholder="CoolPlayer99" maxlength="16">
+        </div>
+        <div class="input-group">
+          <label>Email</label>
+          <input type="email" id="signup-email" class="auth-input" placeholder="you@example.com">
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" id="signup-password" class="auth-input" placeholder="6+ characters">
+        </div>
+        <button class="auth-submit" id="btn-signup">Sign Up</button>
+      </div>
+    </div>
+  </div>
+
   <!-- HUD -->
   <div id="hud" class="hidden">
     <div id="score-box">
@@ -432,6 +485,13 @@
     <div class="tagline">Stack · Slice · Survive</div>
     <button class="btn" id="start-btn">Play</button>
     <button class="btn-secondary" id="lb-toggle-btn">Leaderboard</button>
+    <div id="start-login-prompt" style="display:none; flex-direction:column; align-items:center; gap:8px; margin-top:24px; pointer-events:all;">
+      <div style="font-size:13px; color:rgba(255,255,255,0.5);">Log in to compete globally!</div>
+      <div style="display:flex; gap:12px;">
+        <button class="auth-btn-small" id="start-login-btn">Log In</button>
+        <button class="auth-btn-small" id="start-signup-btn">Sign Up</button>
+      </div>
+    </div>
     <div id="start-lb"></div>
     <div class="hint">Click or press Space to drop</div>
   </div>
@@ -441,16 +501,33 @@
     <div id="final-score-label">Your Score</div>
     <div id="final-score">0</div>
     <div id="best-score">Best: 0</div>
+    <div id="global-rank" style="display:none">Global Rank: -</div>
     <div id="name-row">
       <input type="text" id="name-input" placeholder="Your name" maxlength="16" autocomplete="off">
       <button id="save-btn">Save</button>
     </div>
-    <div id="leaderboard"></div>
-    <button class="btn" id="restart-btn">Play Again</button>
+    <div id="login-prompt-row" style="display:none; flex-direction:column; align-items:center; gap:8px; margin-bottom:24px; pointer-events:all;">
+      <div style="font-size:13px; color:rgba(255,255,255,0.5);">Log in to save your score to the global leaderboard!</div>
+      <div style="display:flex; gap:12px;">
+        <button class="auth-btn-small" id="go-login-btn">Log In</button>
+        <button class="auth-btn-small" id="go-signup-btn">Sign Up</button>
+      </div>
+    </div>
+    <div id="leaderboard-wrapper" style="width:320px; margin-bottom:24px; pointer-events:all;">
+      <div id="go-lb-global" style="max-height:200px; overflow-y:auto; display:block;"></div>
+    </div>
+    <div style="display:flex; gap:16px;">
+      <button class="btn" id="restart-btn">Play Again</button>
+      <button class="btn-secondary" id="home-btn" style="margin-top:0; height:fit-content; align-self:center;">Main Menu</button>
+    </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script>
+  <script type="module">
+    import { onAuthChange, signUp, logIn, logOut, currentUserProfile } from './js/auth.js?v=3';
+    import { submitGlobalScore } from './js/score-submit.js?v=3';
+    import { fetchGlobalLeaderboard, renderGlobalLeaderboard } from './js/leaderboard.js?v=3';
+
     /* ============================================================
        StackRift – Complete Game Logic
        ============================================================ */
@@ -663,6 +740,7 @@
 
         // Reset base
         baseMesh.position.y = -BLOCK_HEIGHT / 2;
+        scene.add(baseMesh); // Ensure it's in the scene
         addToStack(baseMesh, BASE_SIZE, BASE_SIZE, 0, 0);
 
         targetCamY = 6;
@@ -782,51 +860,41 @@
           movingBlock = null;
         }
         if (scoreVal > bestScoreVal) { bestScoreVal = scoreVal; localStorage.setItem('stackrift_best', bestScoreVal); }
-        setTimeout(() => {
+        
+        setTimeout(async () => {
           $hud.classList.add('hidden');
           $finalScore.textContent = scoreVal;
           $bestScore.textContent = 'Best: ' + bestScoreVal;
-          // Reset save state
-          lastSavedIndex = -1;
-          const $saveBtn = document.getElementById('save-btn');
-          $saveBtn.disabled = false; $saveBtn.textContent = 'Save';
-          document.getElementById('name-input').value = localStorage.getItem('stackrift_name') || '';
-          renderLeaderboard(document.getElementById('leaderboard'), -1);
+          
+          const $globalRank = document.getElementById('global-rank');
+          $globalRank.style.display = 'none';
+
+          if (currentUserProfile) {
+            document.getElementById('name-row').style.display = 'none';
+            // Submit global score automatically
+            try {
+              const res = await submitGlobalScore(scoreVal);
+              $globalRank.textContent = `Global Rank: #${res.rank}`;
+              $globalRank.style.display = 'block';
+              refreshGlobalLeaderboards();
+            } catch (e) {
+              console.error(e);
+            }
+          } else {
+            document.getElementById('name-row').style.display = 'flex';
+            lastSavedIndex = -1;
+            const $saveBtn = document.getElementById('save-btn');
+            $saveBtn.disabled = false; $saveBtn.textContent = 'Save to Global';
+            document.getElementById('name-input').value = localStorage.getItem('stackrift_name') || '';
+            refreshGlobalLeaderboards();
+          }
+
           $gameOverScreen.classList.remove('hidden');
         }, 600);
       }
 
       /* ---------- LEADERBOARD ---------- */
-      function getScores() {
-        try { return JSON.parse(localStorage.getItem('stackrift_scores')) || []; } catch (e) { return []; }
-      }
-      function saveScoreEntry(name, score) {
-        const scores = getScores();
-        const entry = { name: name.trim() || 'Player', score, date: new Date().toLocaleDateString() };
-        scores.push(entry);
-        scores.sort((a, b) => b.score - a.score);
-        if (scores.length > 20) scores.length = 20; // keep top 20
-        localStorage.setItem('stackrift_scores', JSON.stringify(scores));
-        localStorage.setItem('stackrift_name', entry.name);
-        // Find index of this entry
-        return scores.findIndex(s => s === entry);
-      }
-      function renderLeaderboard(container, highlightIdx) {
-        const scores = getScores();
-        if (scores.length === 0) {
-          container.innerHTML = '<div id="lb-title">Leaderboard</div><div style="text-align:center;color:rgba(255,255,255,.25);font-size:13px;padding:16px 0">No scores yet. Be the first!</div>';
-          return;
-        }
-        const top10 = scores.slice(0, 10);
-        let html = '<div id="lb-title">Leaderboard</div>';
-        top10.forEach((s, i) => {
-          const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-          const hl = i === highlightIdx ? 'highlight' : '';
-          html += `<div class="lb-row ${hl}"><span class="lb-rank ${rankClass}">${i + 1}</span><span class="lb-name">${escHtml(s.name)}</span><span class="lb-score">${s.score}</span><span class="lb-date">${s.date || ''}</span></div>`;
-        });
-        container.innerHTML = html;
-      }
-      function escHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+      // Local leaderboard removed per user request
 
       /* ---------- GAME LOOP ---------- */
       function update() {
@@ -906,25 +974,181 @@
       document.getElementById('start-btn').addEventListener('click', () => { ensureAudio(); startGame(); });
       document.getElementById('restart-btn').addEventListener('click', () => { ensureAudio(); startGame(); });
 
-      // Save score
-      document.getElementById('save-btn').addEventListener('click', () => {
+      // Save score for guest
+      document.getElementById('save-btn').addEventListener('click', async () => {
         if (lastSavedIndex !== -1) return;
         const nameVal = document.getElementById('name-input').value.trim() || 'Player';
-        const idx = saveScoreEntry(nameVal, scoreVal);
-        lastSavedIndex = idx;
+        
         const $saveBtn = document.getElementById('save-btn');
-        $saveBtn.disabled = true; $saveBtn.textContent = 'Saved!';
-        renderLeaderboard(document.getElementById('leaderboard'), idx);
+        $saveBtn.disabled = true; $saveBtn.textContent = 'Saving...';
+        
+        try {
+          const res = await submitGlobalScore(scoreVal, nameVal);
+          $globalRank.textContent = `Global Rank: #${res.rank}`;
+          $globalRank.style.display = 'block';
+          lastSavedIndex = 1;
+          $saveBtn.textContent = 'Saved!';
+          localStorage.setItem('stackrift_name', nameVal);
+          refreshGlobalLeaderboards();
+        } catch (e) {
+          console.error(e);
+          $saveBtn.disabled = false;
+          $saveBtn.textContent = 'Error, Try Again';
+        }
       });
+      
       // Enter key to save
       document.getElementById('name-input').addEventListener('keydown', e => {
         if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); document.getElementById('save-btn').click(); }
       });
+      
       // Start screen leaderboard toggle
       document.getElementById('lb-toggle-btn').addEventListener('click', () => {
         const panel = document.getElementById('start-lb');
-        if (panel.classList.contains('show')) { panel.classList.remove('show'); }
-        else { renderLeaderboard(panel, -1); panel.classList.add('show'); }
+        if (panel.classList.contains('show')) { 
+          panel.classList.remove('show'); 
+        } else { 
+          panel.classList.add('show');
+          refreshGlobalLeaderboards();
+        }
+      });
+      
+      async function refreshGlobalLeaderboards() {
+        const startLb = document.getElementById('start-lb');
+        const goLb = document.getElementById('go-lb-global');
+        
+        const loadingHtml = '<div id="lb-title">Global Leaderboard</div><div style="text-align:center;color:rgba(255,255,255,.5);font-size:13px;padding:16px 0">Loading scores...</div>';
+        if (startLb.innerHTML === '') startLb.innerHTML = loadingHtml;
+        if (goLb.innerHTML === '') goLb.innerHTML = loadingHtml;
+
+        const data = await fetchGlobalLeaderboard();
+        const username = currentUserProfile ? currentUserProfile.username : (localStorage.getItem('stackrift_name') || '');
+        renderGlobalLeaderboard(startLb, data, username);
+        renderGlobalLeaderboard(goLb, data, username);
+      }
+
+      /* ---------- AUTH UI LOGIC ---------- */
+      const $authModal = document.getElementById('auth-modal');
+      const $authError = document.getElementById('auth-error');
+      
+      document.getElementById('auth-toggle-btn').addEventListener('click', async () => {
+        if (currentUserProfile) {
+          await logOut();
+        } else {
+          openAuthModal('login');
+        }
+      });
+
+      document.getElementById('start-login-btn').addEventListener('click', () => openAuthModal('login'));
+      document.getElementById('start-signup-btn').addEventListener('click', () => openAuthModal('signup'));
+      document.getElementById('go-login-btn').addEventListener('click', () => openAuthModal('login'));
+      document.getElementById('go-signup-btn').addEventListener('click', () => openAuthModal('signup'));
+
+      function openAuthModal(tab) {
+        $authModal.classList.add('show');
+        $authError.textContent = '';
+        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.auth-tab[data-tab="${tab}"]`).classList.add('active');
+        document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+        document.getElementById('form-' + tab).classList.add('active');
+      }
+
+      document.getElementById('auth-close').addEventListener('click', () => {
+        $authModal.classList.remove('show');
+      });
+
+      document.querySelectorAll('.auth-tab').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+          openAuthModal(e.target.dataset.tab);
+        });
+      });
+
+      document.getElementById('btn-login').addEventListener('click', async (e) => {
+        const btn = e.target;
+        btn.disabled = true;
+        $authError.textContent = '';
+        try {
+          await logIn(
+            document.getElementById('login-email').value,
+            document.getElementById('login-password').value
+          );
+          $authModal.classList.remove('show');
+          refreshGlobalLeaderboards();
+        } catch (err) {
+          $authError.textContent = err.message;
+        }
+        btn.disabled = false;
+      });
+
+      document.getElementById('btn-signup').addEventListener('click', async (e) => {
+        const btn = e.target;
+        btn.disabled = true;
+        $authError.textContent = '';
+        try {
+          await signUp(
+            document.getElementById('signup-email').value,
+            document.getElementById('signup-password').value,
+            document.getElementById('signup-username').value
+          );
+          $authModal.classList.remove('show');
+          refreshGlobalLeaderboards();
+        } catch (err) {
+          $authError.textContent = err.message;
+        }
+        btn.disabled = false;
+      });
+
+      onAuthChange((user) => {
+        const nameDisp = document.getElementById('user-name-display');
+        const statusDisp = document.getElementById('user-status-display');
+        const btn = document.getElementById('auth-toggle-btn');
+        
+        if (user) {
+          nameDisp.textContent = user.username || user.email;
+          statusDisp.textContent = 'Logged In';
+          statusDisp.style.color = '#00f0ff';
+          btn.textContent = 'Log Out';
+          document.getElementById('name-row').style.display = 'none';
+          document.getElementById('login-prompt-row').style.display = 'none';
+          document.getElementById('start-login-prompt').style.display = 'none';
+        } else {
+          nameDisp.textContent = 'Guest';
+          statusDisp.textContent = 'Not saved to cloud';
+          statusDisp.style.color = 'rgba(255,255,255,0.4)';
+          btn.textContent = 'Log In';
+          document.getElementById('start-login-prompt').style.display = 'flex';
+          if (state === 'gameover') {
+            document.getElementById('name-row').style.display = 'flex';
+            document.getElementById('login-prompt-row').style.display = 'flex';
+          } else {
+            document.getElementById('name-row').style.display = 'none';
+            document.getElementById('login-prompt-row').style.display = 'none';
+          }
+        }
+        refreshGlobalLeaderboards();
+      });
+      
+      // Main menu button
+      document.getElementById('home-btn').addEventListener('click', () => {
+        state = 'start';
+        $gameOverScreen.classList.add('hidden');
+        $startScreen.classList.remove('hidden');
+        $hud.classList.add('hidden');
+        renderLeaderboard(document.getElementById('start-lb-local'), -1);
+        refreshGlobalLeaderboards();
+        
+        // Reset block graphics
+        stack.forEach(s => scene.remove(s.mesh));
+        particles.forEach(p => scene.remove(p.mesh));
+        fallingPieces.forEach(f => scene.remove(f.mesh));
+        if (movingBlock) scene.remove(movingBlock.mesh);
+        stack = []; particles = []; fallingPieces = []; movingBlock = null;
+        
+        baseMesh.position.y = -BLOCK_HEIGHT / 2;
+        addToStack(baseMesh, BASE_SIZE, BASE_SIZE, 0, 0);
+        
+        camera.position.set(5, 6, 5);
+        camera.lookAt(0, 0, 0);
       });
       window.addEventListener('keydown', e => {
         if (e.code === 'Space') {
@@ -950,7 +1174,6 @@
 
       /* ---------- INIT ---------- */
       $bestScore.textContent = 'Best: ' + bestScoreVal;
-      renderLeaderboard(document.getElementById('start-lb'), -1);
       update();
 
     })();
